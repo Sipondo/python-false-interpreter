@@ -1,0 +1,28 @@
+\documentclass{standalone}
+\usepackage{bussproofs}
+\usepackage{amssymb}
+\usepackage{latexsym}
+% This is the centered symbol
+\defCenter{{\mbox{\Large$
+ightarrow$}}}
+% Optional to turn on the short abbreviations
+\EnableBpAbbreviations
+\begin{document}
+\thispagestyle{empty}\AxiomC{$<2,{},[]>\rightarrow({},[2]>$}
+\AxiomC{$<[1-\$],{},[2]>\rightarrow({},[2, 1-\$]>$}
+\AxiomC{$<[\$.],{},[2, 1-\$]>\rightarrow({},[2, 1-\$, \$.]>$}
+\AxiomC{$<\$,{},[1]>\rightarrow({},[1, 1]>$}
+\AxiomC{$<.,{},[1, 1]>\rightarrow({},[1]>$}
+\BinaryInfC{$<\$.,{},[1]>\rightarrow({},[1])$}
+\AxiomC{$<1,{},[1]>\rightarrow({},[1, 1]>$}
+\AxiomC{$<-,{},[1, 1]>\rightarrow({},[0]>$}
+\AxiomC{$<\$,{},[0]>\rightarrow({},[0, 0]>$}
+\BinaryInfC{$<-\$,{},[1, 1]>\rightarrow({},[0, 0])$}
+\BinaryInfC{$<1-\$,{},[1]>\rightarrow({},[0, 0])$}
+\AxiomC{$<\#,{},[2, 1-\$, \$.]>\rightarrow({},[0]>$}
+\TrinaryInfC{$<\#,{},[2, 1-\$, \$.]>\rightarrow({},[0])$}
+\BinaryInfC{$<[\$.]\#,{},[2, 1-\$]>\rightarrow({},[0])$}
+\BinaryInfC{$<[1-\$][\$.]\#,{},[2]>\rightarrow({},[0])$}
+\BinaryInfC{$<2[1-\$][\$.]\#,{},[]>\rightarrow({},[0])$}
+\DP
+\end{document}
