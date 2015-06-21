@@ -1,0 +1,30 @@
+\documentclass{standalone}
+\usepackage{bussproofs}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+\usepackage{latexsym}
+
+% Optional to turn on the short abbreviations
+\EnableBpAbbreviations
+\newcommand{\calA}[1]{{\cal A}\llbracket #1 \rrbracket}
+\newcommand{\pass}[2]{\left[#1\mapsto\calA{#2}\right]}
+
+% \alwaysRootAtTop  % makes proofs upside down
+% \alwaysRootAtBottom % -- this is the default setting
+
+\begin{document}
+\thispagestyle{empty}\AxiomC{}
+\RightLabel{$[push^{ns}]$}
+\UnaryInfC{$\langle  1, g,(,),(n,(I,(,))),(,)\rangle \rightarrow(g,(1,(,)),(n,(I,(,))),(,))$}
+\AxiomC{}
+\RightLabel{$[push^{ns}]$}
+\UnaryInfC{$\langle  2, g,(1,(,)),(n,(I,(,))),(,)\rangle \rightarrow(g,(2,(1,(,))),(n,(I,(,))),(,))$}
+\AxiomC{}
+\RightLabel{$[push^{ns}]$}
+\UnaryInfC{$\langle  3, g,(2,(1,(,))),(n,(I,(,))),(,)\rangle \rightarrow(g,(3,(2,(1,(,)))),(n,(I,(,))),(,))$}
+\RightLabel{$[comp^{ns}]$}
+\BinaryInfC{$\langle 2\:3, g,(1,(,)),(n,(I,(,))),(,)\rangle \rightarrow(g,(3,(2,(1,(,)))),(n,(I,(,))),(,))$}
+\RightLabel{$[comp^{ns}]$}
+\BinaryInfC{$\langle 1\:2\:3, g,(,),(n,(I,(,))),(,)\rangle \rightarrow(g,(3,(2,(1,(,)))),(n,(I,(,))),(,))$}
+\DP
+\end{document}

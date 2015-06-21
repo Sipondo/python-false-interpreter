@@ -1,10 +1,13 @@
 \documentclass{standalone}
 \usepackage{bussproofs}
 \usepackage{amssymb}
+\usepackage{stmaryrd}
 \usepackage{latexsym}
 
 % Optional to turn on the short abbreviations
 \EnableBpAbbreviations
+\newcommand{\calA}[1]{{\cal A}\llbracket #1 \rrbracket}
+\newcommand{\pass}[2]{\left[#1\mapsto\calA{#2}\right]}
 
 % \alwaysRootAtTop  % makes proofs upside down
 % \alwaysRootAtBottom % -- this is the default setting

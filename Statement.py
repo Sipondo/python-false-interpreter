@@ -1,6 +1,5 @@
 __author__ = 'Ties'
 import Statement as S
-import sys
 import copy
 
 class Statement:
@@ -64,13 +63,15 @@ class Statement:
     #     SYNTAX ERROR
         print "syntax error"
 
-    def execute(self,stack,variables):
-        self.prestack = str(stack)
+    def execute(self,stack,variables, input, output):
+        self.prestack = list(stack)
         self.prevariables = str(variables)
+        self.preinput = list(input)
+        self.preoutput = list(output)
         # print str(stack) + " on " + self.printtree()
         if len(self.children)==2:
             for child in self.children:
-                child.execute(stack,variables)
+                child.execute(stack,variables, input, output)
         else:
             ### ARITHMETIC OPERATIONS:
             # +: Add
@@ -111,19 +112,19 @@ class Statement:
             # Input: n
             # Output:
             elif self.a == '.':
-                print stack.pop(len(stack)-1)
+                output.append(stack.pop(len(stack)-1))
 
             # ,: Print char
             # Input: n
             # Output:
             elif self.a == ',':
-                print chr(stack.pop(len(stack)-1))
+                output.append(chr(stack.pop(len(stack)-1)))
 
             # : Print string
             # Input:
             # Output:
             elif self.a[0] == '"':
-                print self.a[1:-1]
+                output.extend(list(self.a[1:-1]))
 
             # {letter}: Put/Execute lambda variable
             # Input:
@@ -134,7 +135,10 @@ class Statement:
             elif self.a[0]==':':
                 a = stack.pop(len(stack)-1)
                 if a in "abcdefghijklmnopqrstuvwxyz":
-                    variables[a] = stack.pop(len(stack)-1)
+                    b = stack.pop(len(stack)-1)
+                    variables[a] = b
+                    self.waarde = b
+                    self.variabele = a
                 else:
                     raise Exception("Try to assign to illegal variable!")
 
@@ -146,7 +150,7 @@ class Statement:
             # Output:
             elif self.a == '!':
                 self.children.append(stack.pop(len(stack)-1))
-                self.children[0].execute(stack,variables)
+                self.children[0].execute(stack,variables,input,output)
 
             # ?: Execute lambda variable conditionally (IF)
             # Input: [] n
@@ -154,7 +158,7 @@ class Statement:
             elif self.a == '?':
                 a = stack.pop(len(stack)-1)
                 if stack.pop(len(stack)-1)!=0:
-                    a.execute(stack,variables)
+                    a.execute(stack,variables,input,output)
 
             # #: Execute lambda variable conditionally repeatedly (WHILE)
             # Input: [] [] n
@@ -162,18 +166,20 @@ class Statement:
             elif self.a == "#":
                 a = stack.pop(len(stack)-1)
                 b = stack.pop(len(stack)-1)
-                b.execute(stack,variables)
-                self.repetitions = 0
+                child = copy.copy(b)
+                self.children.append(child)
+                child.execute(stack,variables,input,output)
+                self.repetitions = 1
                 self.stacks = []
                 self.variables = []
                 while(stack.pop(len(stack)-1)!=0):
                     self.repetitions = self.repetitions + 1
                     child = copy.copy(a)
                     self.children.append(child)
-                    child.execute(stack,variables)
+                    child.execute(stack,variables,input,output)
                     child = copy.copy(b)
                     self.children.append(child)
-                    child.execute(stack,variables)
+                    child.execute(stack,variables,input,output)
 
             ### CONDITIONAL OPERATIONS:
             # =: Equals
@@ -184,6 +190,23 @@ class Statement:
                     stack.append(-1)
                 else:
                     stack.append(0)
+
+            # =: Or
+            # Input: n, m
+            # Output: n==m
+            elif self.a == '|':
+                if stack.pop(len(stack)-1)!=0 or stack.pop(len(stack)-1)!=0:
+                    stack.append(-1)
+                else:
+                    stack.append(0)
+
+            # =: Not
+            # Input: n
+            # Output: !n
+            elif self.a == '~':
+                a = stack.pop(len(stack)-1)
+                print a
+                stack.append(a*-1-1)
 
             # >: Greater Than
             # Input: n, m
@@ -236,6 +259,9 @@ class Statement:
             elif self.a == 'Q':
                 stack.append(stack[len(stack)-2-stack.pop(len(stack)-1)])
 
+            elif self.a == "^":
+                stack.append(ord(input.pop()))
+
             ### INTEGER:
             # {integer}: Integer
             # Input:
@@ -252,8 +278,10 @@ class Statement:
                     stack.append(self.encapsulate)
                 else:
                     raise Exception("Undefined statement '" + self.a + "', ASCII code '" + str(ord(self.a[0])) + "'!")
-        self.poststack = str(stack)
+        self.poststack = list(stack)
         self.postvariables = str(variables)
+        self.postinput = list(input)
+        self.postoutput = list(output)
 
     def printtree(self):
         if len(self.children)==2:
@@ -261,73 +289,143 @@ class Statement:
         else:
             return "[" + self.a + "]"
 
-    def printlatex(self):
-        if len(self.children)>0:
-            string = ""
-
-            if hasattr(self,'repetitions'):
-                return self.makeWhile(0)
-            else:
-                for child in self.children:
-                    string = string + child.printlatex()
-                return "\infer{<" \
-                   + self.format(self.a) + self.format(self.statement[len(self.a):]) + "," + self.format(self.prevariables) + "," + self.format(self.prestack) \
-                   + ">\\rightarrow(" + self.format(self.postvariables) + "," + self.format(self.poststack)\
-                   + ")}{" + string + "}"
-        else:
-            if self.a[0] == '!':
-                return self.children[0].printlatex()
-            return "<"+ self.format(self.a) + "," + self.format(self.prevariables) + "," + self.format(self.prestack) \
-                   + ">\\rightarrow(" + self.format(self.postvariables) + "," + self.format(self.poststack)+">"
-
-    def makeWhile(self,i):
-        if i+2<=len(self.children):
-            return self.children[i].printlatex() + self.children[i+1].printlatex() \
-            +  "\infer{" \
-            + self.format(self.a) + self.format(self.statement[len(self.a):]) + "," + self.format(self.prevariables) + "," + self.format(self.prestack) \
-            + ">\\rightarrow(" + self.format(self.postvariables) + "," + self.format(self.poststack)\
-            + "\\rightarrow(" + self.format(self.postvariables) + "," + self.format(self.poststack)\
-            + ")}{" + self.makeWhile(i+2) + "}"
-        else:
-            return "\infer{<" \
-            + self.format(self.a) + self.format(self.statement[len(self.a):]) + "," + self.format(self.prevariables) + "," + self.format(self.prestack) \
-            + ">\\rightarrow(" + self.format(self.postvariables) + "," + self.format(self.poststack)\
-            + ")}{}"
-        return 0
-
     def printbuss(self):
             if len(self.children)>0:
                 string = ""
-                if self.a[0] == '!' and len(self.children)==1:
-                    return "\\UnaryInfC{$"+ self.children[0].printbuss() + "$}\n"
-                elif hasattr(self,'repetitions'):
+                # While
+                if hasattr(self,'repetitions'):
                     return self.makeWhileb(0)
                 else:
+                    # Format children strings
                     for child in self.children:
                         string = string + child.printbuss()
-                    return string + "\BinaryInfC{$<" \
-                       + self.format(self.a) + self.format(self.statement[len(self.a):]) + "," + self.format(self.prevariables) + "," + self.format(self.prestack) \
-                       + ">\\rightarrow(" + self.format(self.postvariables) + "," + self.format(self.poststack)\
+
+                    # !: Execute
+                    if self.a[0] == '!' and len(self.children)==1:
+                        return string + "\\RightLabel{$[apply^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                    else:
+                        # Composition
+                        return string + "\\RightLabel{$[comp^{ns}]$}\n\\BinaryInfC{$\\langle " \
+                       + self.format(self.a) + self.format(self.statement[len(self.a):]) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))\
                        + ")$}\n"
             else:
-                return "\\AxiomC{$\\langle "+ self.format(self.a) + "," + self.format(self.prevariables) + "," + self.format(self.prestack) \
-                       + "\\rangle\\rightarrow(" + self.format(self.postvariables) + "," + self.format(self.poststack)+")$}\n"
+                ###### AXIOMS
+                ### 1. STACK OPERATIONS
+                # Duplicate
+                if self.a[0] == "$":
+                    return "\\AxiomC{}\n\\RightLabel{$[dup^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # Swap
+                if self.a[0] == "\\":
+                    return "\\AxiomC{}\n\\RightLabel{$[swap^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # Delete
+                if self.a[0] == "%":
+                    return "\\AxiomC{}\n\\RightLabel{$[del^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # Rotate
+                if self.a[0] == "@":
+                    return "\\AxiomC{}\n\\RightLabel{$[rot^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # Pick
+
+                ### 2. VARIABLES
+                # Assign
+                if self.a[0] == ":":
+                    return "\\AxiomC{}\n\\RightLabel{$[assign^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g\pass{" + self.format(str(self.waarde)) + "}{" + self.format(self.variabele) + "}"+ "," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # Retrieve
+                if self.a[0] == ";":
+                    return "\\AxiomC{}\n\\RightLabel{$[retrieve^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+
+                ### 3. LOGIC
+
+                ### 4. OPERATORS
+                # Add
+                if self.a[0] == "+":
+                    return "\\AxiomC{}\n\\RightLabel{$[add^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # Subtract
+                elif self.a[0] == "-":
+                    return "\\AxiomC{}\n\\RightLabel{$[sub^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # Multiply
+                elif self.a[0] == "*":
+                    return "\\AxiomC{}\n\\RightLabel{$[mult^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # Divide
+                elif self.a[0] == "/":
+                    return "\\AxiomC{}\n\\RightLabel{$[div^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+
+                # Negative
+                elif self.a[0] == "_":
+                    return "\\AxiomC{}\n\\RightLabel{$[neg^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # Equals
+                elif self.a[0] == "=":
+                    return "\\AxiomC{}\n\\RightLabel{$[eq^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # Inverse
+                elif self.a[0] == "~":
+                    return "\\AxiomC{}\n\\RightLabel{$[inv^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # Greater than
+                elif self.a[0] == ">":
+                    return "\\AxiomC{}\n\\RightLabel{$[greater^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # And
+                elif self.a[0] == "&":
+                    return "\\AxiomC{}\n\\RightLabel{$[and^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # Or
+                elif self.a[0] == "|":
+                    return "\\AxiomC{}\n\\RightLabel{$[or^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+
+                ### 6. Input/output
+                # Getchar
+                if self.a[0] == "^":
+                    return "\\AxiomC{}\n\\RightLabel{$[getchar^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # Comment
+                if self.a[0] == "{":
+                    return "\\AxiomC{}\n\\RightLabel{$[comment^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # Printchar
+                if self.a[0] == ",":
+                    return "\\AxiomC{}\n\\RightLabel{$[printchar^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # Printnum
+                if self.a[0] == ".":
+                    return "\\AxiomC{}\n\\RightLabel{$[printnum^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # Getchar
+                if self.a[0] == "\"":
+                    return "\\AxiomC{}\n\\RightLabel{$[string^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+
+                # Push
+                else:
+                    return "\\AxiomC{}\n\\RightLabel{$[push^{ns}]$}\n\\UnaryInfC{$\\langle  "+ self.format(self.a) + ", g," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(g," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
+                # return "\\AxiomC{$\\langle  "+ self.format(self.a) + "," + self.format(self.prevariables) + "," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                #        + "\\rangle \\rightarrow(" + self.format(self.postvariables) + "," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+")$}\n"
 
     def makeWhileb(self,i):
         if i+2<=len(self.children):
             return self.children[i].printbuss() + self.children[i+1].printbuss() +  self.makeWhileb(i+2) \
-            + "\TrinaryInfC{$<" \
-            + self.format(self.a) + self.format(self.statement[len(self.a):]) + "," + self.format(self.prevariables) + "," + self.format(self.prestack) \
-            + ">\\rightarrow(" + self.format(self.postvariables) + "," + self.format(self.poststack)\
+            + "\\RightLabel{$[while^{ns}_{tt}]$}\n" \
+            + "\TrinaryInfC{$\\langle " \
+            + self.format(self.a) + self.format(self.statement[len(self.a):]) + "," + self.format(self.prevariables) + "," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+            + "\\rangle \\rightarrow(" + self.format(self.postvariables) + "," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))\
             + ")$}\n"
         else:
-            return "\\AxiomC{$<"+ self.format(self.a) + "," + self.format(self.prevariables) + "," + self.format(self.prestack) \
-                       + ">\\rightarrow(" + self.format(self.postvariables) + "," + self.format(self.poststack)+">$}\n"
-            # return "\infer{<" \
-            # + self.format(self.a) + self.format(self.statement[len(self.a):]) + "," + self.format(self.prevariables) + "," + self.format(self.prestack) \
-            # + ">\\rightarrow(" + self.format(self.postvariables) + "," + self.format(self.poststack)\
-            # + ")}{}"
-        return 0
+            return self.children[i].printbuss() + "\\RightLabel{$[while^{ns}_{ff}]$}\n\\UnaryInfC{$\\langle "+ self.format(self.a) + "," + self.format(self.prevariables) + "," + self.format(self.printer(self.prestack)) + "," + self.format(self.printer(self.preinput)) + "," + self.format(self.printer(self.preoutput)) \
+                       + "\\rangle \\rightarrow(" + self.format(self.postvariables) + "," + self.format(self.printer(self.poststack)) + "," + self.format(self.printer(self.postinput)) + "," + self.format(self.printer(self.postoutput))+">$}\n"
 
     def whileBody(self):
         return self.format(self.a) + self.format(self.statement[len(self.a):])
@@ -341,3 +439,12 @@ class Statement:
         for char in "$_&%#":
             string = string.replace(str(char),"\\"+str(char))
         return string.replace(str(' '),"\\:")
+
+    def printer(self,lister,i=-1):
+        if(i==-1):
+            i = len(lister)-1
+            if len(lister) == 0:
+                return "(,)"
+        if i == 0:
+            return "(" + str(lister[i]) + ",(,))"
+        return "(" + str(lister[i]) + "," + self.printer(lister,i-1) + ")"

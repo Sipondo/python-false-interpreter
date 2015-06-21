@@ -1,0 +1,56 @@
+\documentclass[a1paper,6pt]{article}
+\usepackage[landscape]{geometry}
+\usepackage{bussproofs}
+\usepackage{amssymb}
+\usepackage{latexsym}
+\usepackage{fullpage}
+
+% Optional to turn on the short abbreviations
+\EnableBpAbbreviations
+\newcommand{\calA}[1]{{\cal A}\llbracket #1 \rrbracket}
+\newcommand{\pass}[2]{\left[#1\mapsto\calA{#2}\right]}
+
+% \alwaysRootAtTop  % makes proofs upside down
+% \alwaysRootAtBottom % -- this is the default setting
+
+\begin{document}
+{\huge Appendix B: Prooftree}\\
+
+This is the prooftree for the following code:
+\begin{verbatim} 1[1-$][$.]#
+\end{verbatim}
+
+This is a program with a while loop. It counts down from 1 to 0. At 0, the while breaks. Every cycle prints the cycle number as an int.
+
+\thispagestyle{empty}\AxiomC{}
+\RightLabel{$[push^{ns}]$}
+\UnaryInfC{$\langle  1, g,(,),(I,(n,(,))),(,)\rangle \rightarrow(g,(1,(,)),(I,(n,(,))),(,))$}
+\AxiomC{}
+\RightLabel{$[push^{ns}]$}
+\UnaryInfC{$\langle  [1-\$], g,(1,(,)),(I,(n,(,))),(,)\rangle \rightarrow(g,(1,(1-\$,(,))),(I,(n,(,))),(,))$}
+\AxiomC{}
+\RightLabel{$[push^{ns}]$}
+\UnaryInfC{$\langle  [\$.], g,(1,(1-\$,(,))),(I,(n,(,))),(,)\rangle \rightarrow(g,(1,(1-\$,(\$.,(,)))),(I,(n,(,))),(,))$}
+\AxiomC{}
+\RightLabel{$[push^{ns}]$}
+\UnaryInfC{$\langle  1, g,(1,(,)),(I,(n,(,))),(,)\rangle \rightarrow(g,(1,(1,(,))),(I,(n,(,))),(,))$}
+\AxiomC{}
+\RightLabel{$[sub^{ns}]$}
+\UnaryInfC{$\langle  -, g,(1,(1,(,))),(I,(n,(,))),(,)\rangle \rightarrow(g,(0,(,)),(I,(n,(,))),(,))$}
+\AxiomC{}
+\RightLabel{$[dup^{ns}]$}
+\UnaryInfC{$\langle  \$, g,(0,(,)),(I,(n,(,))),(,)\rangle \rightarrow(g,(0,(0,(,))),(I,(n,(,))),(,))$}
+\RightLabel{$[comp^{ns}]$}
+\BinaryInfC{$\langle -\$, g,(1,(1,(,))),(I,(n,(,))),(,)\rangle \rightarrow(g,(0,(0,(,))),(I,(n,(,))),(,))$}
+\RightLabel{$[comp^{ns}]$}
+\BinaryInfC{$\langle 1-\$, g,(1,(,)),(I,(n,(,))),(,)\rangle \rightarrow(g,(0,(0,(,))),(I,(n,(,))),(,))$}
+\RightLabel{$[while^{ns}_{ff}]$}
+\UnaryInfC{$\langle \#,{},(1,(1-\$,(\$.,(,)))),(I,(n,(,))),(,)\rangle \rightarrow({},(0,(,)),(I,(n,(,))),(,)>$}
+\RightLabel{$[comp^{ns}]$}
+\BinaryInfC{$\langle [\$.]\#, g,(1,(1-\$,(,))),(I,(n,(,))),(,)\rangle \rightarrow(g,(0,(,)),(I,(n,(,))),(,))$}
+\RightLabel{$[comp^{ns}]$}
+\BinaryInfC{$\langle [1-\$][\$.]\#, g,(1,(,)),(I,(n,(,))),(,)\rangle \rightarrow(g,(0,(,)),(I,(n,(,))),(,))$}
+\RightLabel{$[comp^{ns}]$}
+\BinaryInfC{$\langle 1[1-\$][\$.]\#, g,(,),(I,(n,(,))),(,)\rangle \rightarrow(g,(0,(,)),(I,(n,(,))),(,))$}
+\DP
+\end{document}
